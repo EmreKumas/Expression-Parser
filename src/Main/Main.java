@@ -1,5 +1,8 @@
+package Main;
+
 import java.util.HashMap;
 import java.util.Scanner;
+import Main.Expression_Tree.Node;
 
 public class Main{
 
@@ -19,6 +22,9 @@ public class Main{
 
         //Lets write the variables and their values...
         writeToScreen(postfixExpression);
+
+        //Now, we need to construct the binary tree.
+        Node tree = Expression_Tree.constructTree(postfixExpression);
     }
 
     private static void writeToScreen(String postfixExpression){

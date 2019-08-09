@@ -1,3 +1,5 @@
+package Main;
+
 import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.Stack;
