@@ -1,34 +1,30 @@
+import java.util.EmptyStackException;
+import java.util.HashMap;
+import java.util.Scanner;
 import java.util.Stack;
 
 public class Main{
+
+    private static HashMap<Character, String> variables;
+
     public static void main(String[] args){
 
-        String expression = "[(((117|64)++)-(47&15))--]^!(12-95)";
-        System.out.println(transformExpression(expression));
-    }
+        //Initializations
+        variables = new HashMap<>();
 
-    private static String transformExpression(String expression){
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter the expression that you want to create the assembly form of : ");
 
-        StringBuilder transformedExpression = new StringBuilder();
-        char current_character, previous_character = '$';
+        String expression = scanner.nextLine();
+        String transformedExpression = transformExpression(expression);
+        String postfixExpression = infixToPostfix(transformedExpression);
 
-        for(int i = 0; i < expression.length(); i++){
-            current_character = expression.charAt(i);
-
-            if(previous_character == current_character){
-                //We only want to transform increment and decrement operators.
-                if(current_character == '+' || current_character == '-'){
-                    transformedExpression.deleteCharAt(transformedExpression.length()-1);
-                    transformedExpression.append((current_character == '+' ? '*' : '/'));
-                    continue;
-                }
-            }
-
-            transformedExpression.append(current_character);
-            previous_character = current_character;
+        //Lets write the variables and their values...
+        for(int i = 0; i < variables.size(); i++){
+            System.out.println(variables.keySet().toArray()[i] + " = " + variables.values().toArray()[i]);
         }
 
-        return transformedExpression.toString();
+        System.out.println("\n" + postfixExpression);
     }
 
     private static int precedence(char character){
@@ -59,14 +55,35 @@ public class Main{
 
         StringBuilder postfix = new StringBuilder();
         Stack<Character> stack = new Stack<>();
+        char[] alphabet = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+        int variable_index = 0;
 
         for(int i = 0; i < expression.length(); i++){
 
             char current_character = expression.charAt(i);
 
-            if(Character.isDigit(current_character))
-                postfix.append(current_character);
-            else if(current_character == '(' || current_character == '[')
+            if(Character.isDigit(current_character)){
+
+                //If previously declared...
+                if(variables.containsKey(alphabet[variable_index])){
+
+                    String value = variables.get(alphabet[variable_index]);
+                    value += current_character;
+                    variables.put(alphabet[variable_index], value);
+                }else{
+                    variables.put(alphabet[variable_index], Character.toString(current_character));
+                    postfix.append(alphabet[variable_index]);
+                }
+
+                continue;
+            }else{
+
+                //If we have already defined a variable, we need to increment variable_index...
+                if(variables.containsKey(alphabet[variable_index]))
+                    variable_index++;
+            }
+
+            if(current_character == '(' || current_character == '[')
                 stack.push(current_character);
             else if(current_character == ')'){
 
@@ -77,7 +94,9 @@ public class Main{
                 if(!stack.isEmpty() && stack.peek() != '(')
                     return "Entered expression is not valid!";
                 else
-                    stack.pop();
+                    try{
+                        stack.pop();
+                    }catch(EmptyStackException e) { return "Entered expression is not valid!"; }
             }else if(current_character == ']'){
 
                 //Pop until a '[' character is encountered.
@@ -87,17 +106,16 @@ public class Main{
                 if(!stack.isEmpty() && stack.peek() != '[')
                     return "Entered expression is not valid!\n";
                 else
-                    stack.pop();
+                    try{
+                        stack.pop();
+                    }catch(EmptyStackException e) { return "Entered expression is not valid!"; }
             }else{
 
                 while(!stack.isEmpty() && precedence(current_character) <= precedence(stack.peek())){
 
                     if(stack.peek() == '(' || stack.peek() == '[')
                         return "Entered expression is not valid!";
-                    else if(stack.peek() == current_character)
-                        break;
-                    else
-                        postfix.append(stack.pop());
+                    postfix.append(stack.pop());
                 }
 
                 stack.push(current_character);
@@ -113,5 +131,33 @@ public class Main{
         }
 
         return postfix.toString();
+    }
+
+    /**
+     * We convert the increment operator into multiplication operator. (++ -> *)
+     * We convert the decrement operator into division operator. (-- -> /)
+     */
+    private static String transformExpression(String expression){
+
+        StringBuilder transformedExpression = new StringBuilder();
+        char current_character, previous_character = '$';
+
+        for(int i = 0; i < expression.length(); i++){
+            current_character = expression.charAt(i);
+
+            if(previous_character == current_character){
+                //We only want to transform increment and decrement operators.
+                if(current_character == '+' || current_character == '-'){
+                    transformedExpression.deleteCharAt(transformedExpression.length()-1);
+                    transformedExpression.append((current_character == '+' ? '*' : '/'));
+                    continue;
+                }
+            }
+
+            transformedExpression.append(current_character);
+            previous_character = current_character;
+        }
+
+        return transformedExpression.toString();
     }
 }
