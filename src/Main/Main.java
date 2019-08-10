@@ -10,7 +10,7 @@ public class Main{
     private static HashMap<Character, Integer> variableInRegister;
     private static HashMap<Integer, Integer> registerStates;
     private static ArrayList<String> instructions;
-    private static int[] registers;
+    private static ArrayList<String> assembly;
 
     public static void main(String[] args){
 
@@ -19,7 +19,7 @@ public class Main{
         variableInRegister = new HashMap<>();
         registerStates = new HashMap<>();
         instructions = new ArrayList<>();
-        registers = new int[4];
+        assembly = new ArrayList<>();
         Postfix_Creator postfix_creator = new Postfix_Creator(variables, variableInRegister);
 
         Scanner scanner = new Scanner(System.in);
@@ -39,7 +39,10 @@ public class Main{
         traverse(tree);
 
         //Lets create the assembly instructions using instructions ArrayList.
-        //constructInstructions();
+        createRegisters();
+        constructInstructions();
+
+        System.out.println(Arrays.toString(assembly.toArray()));
     }
 
     private static void writeToScreen(String postfixExpression){
@@ -54,7 +57,7 @@ public class Main{
             System.out.println(variables.keySet().toArray()[i] + " = " + variables.values().toArray()[i]);
         }
 
-        System.out.println("\n" + postfixExpression);
+        System.out.println("\n" + postfixExpression + "\n");
     }
 
     private static void traverse(Node node){
@@ -91,12 +94,13 @@ public class Main{
         }
     }
 
-    /*[a b | , * , c d & , - , / , e f - , ! , ^ ]
+    //[a b | , * , c d & , - , / , e f - , ! , ^ ]
     private static void constructInstructions(){
 
         String[] elements;
         char firstLetter, secondLetter, operand;
-        int firstLocation, secondLocation;
+        int firstLocation, secondLocation, resultLocation;
+        int[] previousResultLocations = new int[2];
 
         for(String instruction : instructions){
 
@@ -104,6 +108,16 @@ public class Main{
             switch(elements.length){
 
                 case 1:
+
+                    operand = elements[0].charAt(0);
+
+                    if(operand == '|' || operand == '^' || operand == '&' || operand == '+' || operand == '-'){
+
+                    }else if(operand == '*' || operand == '/'){
+
+                        assembly.add(operandName(operand) + " " + previousResultLocations[0]);
+                    }
+
                     break;
                 case 2:
                     break;
@@ -113,20 +127,28 @@ public class Main{
                     secondLetter = elements[1].charAt(0);
                     operand = elements[2].charAt(0);
 
+                    firstLocation = placeInRegister(firstLetter, Integer.parseInt(variables.get(firstLetter)));
+                    secondLocation = placeInRegister(secondLetter, Integer.parseInt(variables.get(secondLetter)));
+                    resultLocation = findEmptyRegister();
 
+                    assembly.add(operandName(operand) + " " + resultLocation + " " + firstLocation + " " + secondLocation);
+
+                    registerStates.replace(firstLocation, Register_State.used);
+                    registerStates.replace(secondLocation, Register_State.used);
+
+                    previousResultLocations[0] = resultLocation;
 
                     break;
             }
         }
     }
-*/
+
     private static void createRegisters(){
 
         registerStates.put(0, Register_State.empty);
         registerStates.put(1, Register_State.empty);
         registerStates.put(2, Register_State.empty);
         registerStates.put(3, Register_State.empty);
-        registers[0] = registers[1] = registers[2] = registers[3] = 0;
     }
 
     private static boolean checkInRegister(char letter){
@@ -149,11 +171,54 @@ public class Main{
             if(registerStates.get(registerNumber) == Register_State.empty || registerStates.get(registerNumber) == Register_State.used){
                 registerStates.replace(registerNumber, Register_State.initialized);
                 variableInRegister.replace(letter, registerNumber);
-                registers[registerNumber] = value;
                 break;
             }
         }
 
+        //If no place is appropriate, the instruction is not suited for this ISA.
+        if(registerNumber == registerStates.size()){
+            System.out.println("The instruction is not suited for this ISA!!!");
+            System.exit(-1);
+        }
+
+        //Now, we need to add this to the assembly list.
+        assembly.add("ldi " + registerNumber + " " + value);
+
         return registerNumber;
+    }
+
+    private static int findEmptyRegister(){
+
+        int registerNumber;
+
+        for(registerNumber = 0; registerNumber < registerStates.size(); registerNumber++){
+
+            if(registerStates.get(registerNumber) == Register_State.empty || registerStates.get(registerNumber) == Register_State.used){
+                registerStates.replace(registerNumber, Register_State.initialized);
+                break;
+            }
+        }
+
+        //If no place is appropriate, the instruction is not suited for this ISA.
+        if(registerNumber == registerStates.size()){
+            System.out.println("The instruction is not suited for this ISA!!!");
+            System.exit(-1);
+        }
+
+        return registerNumber;
+    }
+
+    private static String operandName(char operand){
+
+        if(operand == '|') return "or";
+        if(operand == '^') return "xor";
+        if(operand == '&') return "and";
+        if(operand == '+') return "add";
+        if(operand == '-') return "sub";
+        if(operand == '*') return "inc";
+        if(operand == '/') return "dec";
+        if(operand == '!' || operand == '~') return "not";
+
+        return "NULL";
     }
 }
