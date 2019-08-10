@@ -1,17 +1,19 @@
 package Main;
 
-import java.util.HashMap;
-import java.util.Scanner;
+import java.util.*;
+
 import Main.Expression_Tree.Node;
 
 public class Main{
 
     private static HashMap<Character, String> variables;
+    private static ArrayList<String> instructions;
 
     public static void main(String[] args){
 
         //Initializations
         variables = new HashMap<>();
+        instructions = new ArrayList<>();
         Postfix_Creator postfix_creator = new Postfix_Creator(variables);
 
         Scanner scanner = new Scanner(System.in);
@@ -25,6 +27,11 @@ public class Main{
 
         //Now, we need to construct the binary tree.
         Node tree = Expression_Tree.constructTree(postfixExpression);
+
+        //Lets traverse over instructions and decide the priorities...
+        traverse(tree);
+
+        System.out.println(Arrays.toString(instructions.toArray()));
     }
 
     private static void writeToScreen(String postfixExpression){
@@ -40,5 +47,39 @@ public class Main{
         }
 
         System.out.println("\n" + postfixExpression);
+    }
+
+    private static void traverse(Node node){
+
+        if(node != null){
+            traverse(node.left);
+            traverse(node.right);
+            addToInstructions(node.value);
+        }
+    }
+
+    private static void addToInstructions(char value){
+
+        if(instructions.isEmpty())
+            instructions.add(value + " ");
+        else{
+
+            //Get the last instruction.
+            String instruction = instructions.get(instructions.size()-1);
+            String[] elements = instruction.split(" ");
+            List<String> list_elements = Arrays.asList(elements);
+
+            if(list_elements.contains("|") || list_elements.contains("^") || list_elements.contains("&") || list_elements.contains("+") || list_elements.contains("-") ||
+                    list_elements.contains("*") || list_elements.contains("/") || list_elements.contains("!") || list_elements.contains("~")){
+
+                instructions.add(value + " ");
+
+            }else{
+
+                instruction += value + " ";
+                instructions.remove(instructions.size()-1);
+                instructions.add(instruction);
+            }
+        }
     }
 }
