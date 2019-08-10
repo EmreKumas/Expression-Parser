@@ -2,15 +2,18 @@ package Main;
 
 import java.util.EmptyStackException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Stack;
 
 class Postfix_Creator{
 
     private HashMap<Character, String> variables;
+    private HashMap<Character, Integer> variableInRegister;
 
-    Postfix_Creator(HashMap<Character, String> variables){
+    Postfix_Creator(HashMap<Character, String> variables, HashMap<Character, Integer> variableInRegister){
 
         this.variables = variables;
+        this.variableInRegister = variableInRegister;
     }
 
     String postfix(String expression){
@@ -18,6 +21,14 @@ class Postfix_Creator{
         String transformedExpression = transformExpression(expression);
 
         return infixToPostfix(transformedExpression);
+    }
+
+    void fillVariableInRegister(){
+
+        for(Map.Entry<Character, String> entry : variables.entrySet()){
+
+            variableInRegister.put(entry.getKey(), -1);
+        }
     }
 
     private int precedence(char character){
