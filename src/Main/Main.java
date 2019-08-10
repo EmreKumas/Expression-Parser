@@ -94,13 +94,15 @@ public class Main{
         }
     }
 
-    //[a b | , * , c d & , - , / , e f - , ! , ^ ]
+    @SuppressWarnings("ConstantConditions")
     private static void constructInstructions(){
 
         String[] elements;
         char firstLetter, secondLetter, operand;
         int firstLocation, secondLocation, resultLocation;
-        int[] previousResultLocations = new int[2];
+
+        Date[] resultLocations_dates = {null, null};
+        Integer[] resultLocations_values = {null, null};
 
         for(String instruction : instructions){
 
@@ -113,9 +115,65 @@ public class Main{
 
                     if(operand == '|' || operand == '^' || operand == '&' || operand == '+' || operand == '-'){
 
+                        firstLocation = resultLocations_values[0];
+                        secondLocation = resultLocations_values[1];
+                        resultLocation = findEmptyRegister();
+
+                        assembly.add(operandName(operand) + " " + resultLocation + " " + firstLocation + " " + secondLocation);
+                        registerStates.replace(firstLocation, Register_State.used);
+                        registerStates.replace(secondLocation, Register_State.used);
+
+                        resultLocations_values[0] = resultLocation;
+                        resultLocations_dates[0] = new Date();
+                        resultLocations_dates[1] = null;
+
                     }else if(operand == '*' || operand == '/'){
 
-                        assembly.add(operandName(operand) + " " + previousResultLocations[0]);
+                        int found;
+
+                        //We need to find the result location.
+                        if(resultLocations_dates[0] != null && resultLocations_dates[1] != null){
+
+                            if(resultLocations_dates[0].getTime() > resultLocations_dates[1].getTime())
+                                found = 0;
+                            else
+                                found = 1;
+
+                        }else if(resultLocations_dates[0] != null)
+                            found = 0;
+                        else
+                            found = 1;
+
+                        resultLocation = resultLocations_values[found];
+                        resultLocations_dates[found] = new Date();
+
+                        assembly.add(operandName(operand) + " " + resultLocation);
+
+                    }else{
+
+                        int found;
+
+                        //We need to find the result location.
+                        if(resultLocations_dates[0] != null && resultLocations_dates[1] != null){
+
+                            if(resultLocations_dates[0].getTime() > resultLocations_dates[1].getTime())
+                                found = 0;
+                            else
+                                found = 1;
+
+                        }else if(resultLocations_dates[0] != null)
+                            found = 0;
+                        else
+                            found = 1;
+
+                        firstLocation = resultLocations_values[found];
+
+                        resultLocation = findEmptyRegister();
+                        resultLocations_dates[found] = new Date();
+                        resultLocations_values[found] = resultLocation;
+
+                        assembly.add(operandName(operand) + " " + resultLocation + " " + firstLocation);
+                        registerStates.replace(firstLocation, Register_State.used);
                     }
 
                     break;
@@ -135,8 +193,16 @@ public class Main{
 
                     registerStates.replace(firstLocation, Register_State.used);
                     registerStates.replace(secondLocation, Register_State.used);
+                    variableInRegister.replace(firstLetter, -1);
+                    variableInRegister.replace(secondLetter, -1);
 
-                    previousResultLocations[0] = resultLocation;
+                    if(resultLocations_dates[0] == null){
+                        resultLocations_values[0] = resultLocation;
+                        resultLocations_dates[0] = new Date();
+                    }else{
+                        resultLocations_values[1] = resultLocation;
+                        resultLocations_dates[1] = new Date();
+                    }
 
                     break;
             }
