@@ -85,6 +85,12 @@ public class Main{
 
                 instructions.add(value + " ");
 
+            }else if(list_elements.size() == 2 && operandName(value).equals("NULL")){ // If the third coming  value is also not an operand...
+
+                instructions.remove(instructions.size()-1);
+                instructions.add(list_elements.get(0) + " ");
+                instructions.add(list_elements.get(1) + " " + value + " ");
+
             }else{
 
                 instruction += value + " ";
@@ -99,10 +105,10 @@ public class Main{
 
         String[] elements;
         char firstLetter, secondLetter, operand;
-        int firstLocation, secondLocation, resultLocation;
+        int firstLocation, secondLocation, resultLocation = -1;
 
-        Date[] resultLocations_dates = {null, null};
-        Integer[] resultLocations_values = {null, null};
+        Integer[] previousResultLocations = {null, null};
+        Integer backup = null;
 
         for(String instruction : instructions){
 
@@ -115,69 +121,97 @@ public class Main{
 
                     if(operand == '|' || operand == '^' || operand == '&' || operand == '+' || operand == '-'){
 
-                        firstLocation = resultLocations_values[0];
-                        secondLocation = resultLocations_values[1];
+                        if(previousResultLocations[0] != null){
+                            firstLocation = previousResultLocations[0];
+                            previousResultLocations[0] = null;
+                        }else{
+                            firstLocation = backup;
+                            backup = null;
+                        }
+
+                        secondLocation = previousResultLocations[1];
                         resultLocation = findEmptyRegister();
 
+                        if(resultLocation == -1) resultLocation = firstLocation;
+
                         assembly.add(operandName(operand) + " " + resultLocation + " " + firstLocation + " " + secondLocation);
-                        registerStates.replace(firstLocation, Register_State.used);
+                        if(resultLocation != firstLocation) registerStates.replace(firstLocation, Register_State.used);
                         registerStates.replace(secondLocation, Register_State.used);
 
-                        resultLocations_values[0] = resultLocation;
-                        resultLocations_dates[0] = new Date();
-                        resultLocations_dates[1] = null;
+                        previousResultLocations[1] = resultLocation;
 
                     }else if(operand == '*' || operand == '/'){
 
-                        int found;
-
-                        //We need to find the result location.
-                        if(resultLocations_dates[0] != null && resultLocations_dates[1] != null){
-
-                            if(resultLocations_dates[0].getTime() > resultLocations_dates[1].getTime())
-                                found = 0;
-                            else
-                                found = 1;
-
-                        }else if(resultLocations_dates[0] != null)
-                            found = 0;
-                        else
-                            found = 1;
-
-                        resultLocation = resultLocations_values[found];
-                        resultLocations_dates[found] = new Date();
+                        resultLocation = previousResultLocations[1];
 
                         assembly.add(operandName(operand) + " " + resultLocation);
 
-                    }else{
+                    }else if(operand == '!' || operand == '~'){
 
-                        int found;
-
-                        //We need to find the result location.
-                        if(resultLocations_dates[0] != null && resultLocations_dates[1] != null){
-
-                            if(resultLocations_dates[0].getTime() > resultLocations_dates[1].getTime())
-                                found = 0;
-                            else
-                                found = 1;
-
-                        }else if(resultLocations_dates[0] != null)
-                            found = 0;
-                        else
-                            found = 1;
-
-                        firstLocation = resultLocations_values[found];
-
+                        firstLocation = previousResultLocations[1];
                         resultLocation = findEmptyRegister();
-                        resultLocations_dates[found] = new Date();
-                        resultLocations_values[found] = resultLocation;
+
+                        if(resultLocation == -1) resultLocation = firstLocation;
 
                         assembly.add(operandName(operand) + " " + resultLocation + " " + firstLocation);
-                        registerStates.replace(firstLocation, Register_State.used);
+                        if(resultLocation != firstLocation) registerStates.replace(firstLocation, Register_State.used);
+
+                        previousResultLocations[1] = resultLocation;
+                    }else{
+
+                        //If the operand actually is not an operand...
+                        resultLocation = placeInRegister(operand, Integer.parseInt(variables.get(operand)));
+
+                        previousResultLocations[1] = resultLocation;
                     }
 
                     break;
                 case 2:
+
+                    firstLetter = elements[0].charAt(0);
+                    operand = elements[1].charAt(0);
+
+                    if(operand == '|' || operand == '^' || operand == '&' || operand == '+' || operand == '-'){
+
+                        firstLocation = previousResultLocations[1];
+                        secondLocation = placeInRegister(firstLetter, Integer.parseInt(variables.get(firstLetter)));
+                        resultLocation = findEmptyRegister();
+
+                        if(resultLocation == -1) resultLocation = firstLocation;
+
+                        assembly.add(operandName(operand) + " " + resultLocation + " " + firstLocation + " " + secondLocation);
+                        if(resultLocation != firstLocation) registerStates.replace(firstLocation, Register_State.used);
+                        registerStates.replace(secondLocation, Register_State.used);
+
+                        previousResultLocations[1] = resultLocation;
+
+                    }else if(operand == '*' || operand == '/'){
+
+                        firstLocation = placeInRegister(firstLetter, Integer.parseInt(variables.get(firstLetter)));
+                        resultLocation = firstLocation;
+
+                        assembly.add(operandName(operand) + " " + resultLocation);
+
+                        //Move back one unit
+                        backup = shiftPreviousLocation(previousResultLocations, backup);
+
+                        previousResultLocations[1] = resultLocation;
+                    }else if(operand == '!' || operand == '~'){
+
+                        firstLocation = placeInRegister(firstLetter, Integer.parseInt(variables.get(firstLetter)));
+                        resultLocation = findEmptyRegister();
+
+                        if(resultLocation == -1) resultLocation = firstLocation;
+
+                        assembly.add(operandName(operand) + " " + resultLocation + " " + firstLocation);
+                        if(resultLocation != firstLocation) registerStates.replace(firstLocation, Register_State.used);
+
+                        //Move back one unit
+                        backup = shiftPreviousLocation(previousResultLocations, backup);
+
+                        previousResultLocations[1] = resultLocation;
+                    }
+
                     break;
                 case 3:
 
@@ -189,24 +223,25 @@ public class Main{
                     secondLocation = placeInRegister(secondLetter, Integer.parseInt(variables.get(secondLetter)));
                     resultLocation = findEmptyRegister();
 
+                    if(resultLocation == -1) resultLocation = firstLocation;
+
                     assembly.add(operandName(operand) + " " + resultLocation + " " + firstLocation + " " + secondLocation);
 
-                    registerStates.replace(firstLocation, Register_State.used);
+                    if(resultLocation != firstLocation) registerStates.replace(firstLocation, Register_State.used);
                     registerStates.replace(secondLocation, Register_State.used);
                     variableInRegister.replace(firstLetter, -1);
                     variableInRegister.replace(secondLetter, -1);
 
-                    if(resultLocations_dates[0] == null){
-                        resultLocations_values[0] = resultLocation;
-                        resultLocations_dates[0] = new Date();
-                    }else{
-                        resultLocations_values[1] = resultLocation;
-                        resultLocations_dates[1] = new Date();
-                    }
+                    //Move back one unit
+                    backup = shiftPreviousLocation(previousResultLocations, backup);
 
+                    previousResultLocations[1] = resultLocation;
                     break;
             }
         }
+
+        //Lets move the lastLocation to the first register.
+        assembly.add("mov 0 " + resultLocation);
     }
 
     private static void createRegisters(){
@@ -265,11 +300,15 @@ public class Main{
             }
         }
 
+        /*
         //If no place is appropriate, the instruction is not suited for this ISA.
         if(registerNumber == registerStates.size()){
             System.out.println("The instruction is not suited for this ISA!!!");
             System.exit(-1);
-        }
+        }*/
+
+        if(registerNumber == registerStates.size())
+            registerNumber = -1;
 
         return registerNumber;
     }
@@ -286,5 +325,22 @@ public class Main{
         if(operand == '!' || operand == '~') return "not";
 
         return "NULL";
+    }
+
+    private static Integer shiftPreviousLocation(Integer[] previousResultLocations, Integer backup){
+
+        if(previousResultLocations[1] != null){
+            if(previousResultLocations[0] != null){
+                if(backup == null)
+                    backup = previousResultLocations[0];
+                else{
+                    System.out.println("Please contact the programmer, there is an error!");
+                    System.exit(-1);
+                }
+            }
+            previousResultLocations[0] = previousResultLocations[1];
+        }
+
+        return backup;
     }
 }
