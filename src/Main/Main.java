@@ -1,8 +1,10 @@
 package Main;
 
-import java.util.*;
-
 import Main.Expression_Tree.Node;
+
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.*;
 
 public class Main{
 
@@ -42,7 +44,10 @@ public class Main{
         createRegisters();
         constructInstructions();
 
-        System.out.println(Arrays.toString(assembly.toArray()));
+        System.out.println(Arrays.toString(assembly.toArray()) + "\n");
+
+        writeToFile();
+        System.out.println("The output is written into Instructions.txt file!");
     }
 
     private static void writeToScreen(String postfixExpression){
@@ -342,5 +347,20 @@ public class Main{
         }
 
         return backup;
+    }
+
+    private static void writeToFile(){
+
+        try{
+            FileWriter fw = new FileWriter("Instructions.txt");
+
+            for(String instruction : assembly)
+                fw.write(instruction + "\n");
+
+            fw.close();
+
+        }catch(IOException e){
+            e.printStackTrace();
+        }
     }
 }
